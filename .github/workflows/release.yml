@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update stable
+      - if: runner.os == 'macOS'
+        run: |
+          ./scripts/bundle.sh
+          ditto -c -k --keepParent "target/WebP All.app" WebP-All-macOS.zip
+      - if: runner.os == 'Windows'
+        run: |
+          cargo build --release
+          cp target/release/webp-all.exe WebP-All-Windows.exe
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libayatana-appindicator3-dev
+          cargo build --release
+          tar -czf WebP-All-Linux.tar.gz -C target/release webp-all
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ runner.os }}
+          path: WebP-All-*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - run: gh release create "$GITHUB_REF_NAME" WebP-All-* --generate-notes --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}

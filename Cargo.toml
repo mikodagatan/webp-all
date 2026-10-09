@@ -1,0 +1,24 @@
+[package]
+name = "webp-all"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
+csv = "1.4.0"
+dirs = "7.0.0"
+image = "0.25.10"
+notify-debouncer-mini = "0.7.0"
+tao = "0.37.1"
+tray-icon = "0.26.1"
+webp = "0.3.1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSError", "NSString"] }
+objc2-service-management = "0.3.2"
+
+[target.'cfg(windows)'.dependencies]
+rfd = { version = "0.17.2", default-features = false }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18.2"

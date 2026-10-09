@@ -98,8 +98,35 @@ fn convert(path: &Path) -> Result<(PathBuf, u64), Box<dyn Error>> {
         out.file_name().unwrap().to_string_lossy()
     ));
     fs::write(&tmp, &*encoded)?;
+    fs::File::options()
+        .write(true)
+        .open(&tmp)?
+        .set_times(original_times(path)?)?;
     fs::rename(&tmp, &out)?;
     Ok((out, encoded.len() as u64))
+}
+
+/// Modified and (where the OS allows setting it) created time of `path`, so the WebP sorts
+/// by the photo's original dates instead of the conversion date.
+fn original_times(path: &Path) -> std::io::Result<fs::FileTimes> {
+    let meta = fs::metadata(path)?;
+    #[allow(unused_mut)]
+    let mut times = fs::FileTimes::new().set_modified(meta.modified()?);
+    #[cfg(target_os = "macos")]
+    {
+        use std::os::macos::fs::FileTimesExt;
+        if let Ok(created) = meta.created() {
+            times = times.set_created(created);
+        }
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::FileTimesExt;
+        if let Ok(created) = meta.created() {
+            times = times.set_created(created);
+        }
+    }
+    Ok(times)
 }
 
 /// `photo.jpg` -> `photo.webp`, or `photo-1.webp`, `photo-2.webp`, ... if taken.
@@ -112,4 +139,33 @@ fn available_output_path(path: &Path) -> PathBuf {
         n += 1;
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{Duration, SystemTime};
+
+    #[test]
+    fn webp_keeps_original_dates() {
+        let dir = std::env::temp_dir().join(format!("webp-all-test-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let png = dir.join("old.png");
+        image::RgbImage::new(4, 4).save(&png).unwrap();
+        let old = SystemTime::UNIX_EPOCH + Duration::from_secs(1_500_000_000);
+        fs::File::options()
+            .write(true)
+            .open(&png)
+            .unwrap()
+            .set_times(fs::FileTimes::new().set_modified(old))
+            .unwrap();
+        let original = fs::metadata(&png).unwrap();
+
+        let (webp, _) = convert(&png).unwrap();
+        let meta = fs::metadata(&webp).unwrap();
+        fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(meta.modified().unwrap(), old);
+        #[cfg(any(target_os = "macos", windows))]
+        assert_eq!(meta.created().unwrap(), original.created().unwrap());
+    }
 }

@@ -31,6 +31,8 @@ Requires Windows 10 or later (64-bit).
 2. Double-click it. The app isn't code-signed, so SmartScreen may warn you: click **More info → Run anyway**.
 3. The icon appears in the system tray. If you don't see it, click the **^** arrow next to the clock.
 
+The first run also adds **WebP All** to the Start menu, so after that you can start it from Windows search. If you move the `.exe`, run it once from its new location to update the shortcut.
+
 ### Linux
 
 Requires a 64-bit (x86_64) distro with glibc 2.35 or later (Ubuntu 22.04, Debian 12, Fedora 36, or newer), and a desktop that shows tray icons. On GNOME, other than Ubuntu's, that means installing the [AppIndicator extension](https://extensions.gnome.org/extension/615/appindicator-support/).
@@ -53,6 +55,8 @@ Requires a 64-bit (x86_64) distro with glibc 2.35 or later (Ubuntu 22.04, Debian
    tar -xzf WebP-All-Linux.tar.gz -C ~/.local/bin
    ~/.local/bin/webp-all &
    ```
+
+   The first run adds **WebP All** to your app launcher, so after that you can start it by searching for it. The entry follows the binary, so if you move `webp-all`, run it once from its new location.
 
 ### Build from source
 
@@ -99,7 +103,9 @@ Start at Login is stored in System Settings → Login Items on macOS, the regist
 
 ## Uninstall
 
-Turn off **Start at Login**, quit WebP All from its menu, then delete the app and its settings folder listed above.
+Turn off **Start at Login**, quit WebP All from its menu, then delete the app and its settings folder listed above. On Windows, also delete the shortcut at `%APPDATA%\Microsoft\Windows\Start Menu\Programs\WebP All.lnk`. On Linux, delete `~/.local/share/applications/webp-all.desktop`.
+
+Only one copy runs at a time: launching it again while it's running does nothing.
 
 ## Publishing a release
 

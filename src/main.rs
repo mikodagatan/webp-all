@@ -31,6 +31,15 @@ enum UserEvent {
 }
 
 fn main() {
+    if !claim_single_instance() {
+        log!("already running");
+        return;
+    }
+    #[cfg(not(target_os = "macos"))]
+    if let Err(e) = login_item::register_launcher() {
+        log!("could not add WebP All to the app launcher: {e}");
+    }
+
     // A folder passed on the command line wins over the one picked in the menu.
     let dir = std::env::args_os()
         .nth(1)
@@ -286,6 +295,21 @@ fn delete_kept_originals(state: &State) {
             Err(e) => log!("could not delete {}: {e}", path.display()),
         }
     }
+}
+
+/// Locks a file for the life of the process. False if another instance holds it, so
+/// launching again from the app launcher doesn't start a second watcher.
+fn claim_single_instance() -> bool {
+    let dir = history::data_dir();
+    let _ = fs::create_dir_all(&dir);
+    let Ok(file) = fs::File::create(dir.join("lock")) else {
+        return true;
+    };
+    if let Err(fs::TryLockError::WouldBlock) = file.try_lock() {
+        return false;
+    }
+    std::mem::forget(file);
+    true
 }
 
 /// Opens `path` in its default app.
